@@ -11,4 +11,3 @@ Irradiance
    transposition
    decomposition
    clearness-index
-   albedo

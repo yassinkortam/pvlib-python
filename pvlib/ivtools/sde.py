@@ -25,15 +25,15 @@ def fit_sandia_simple(voltage, current, v_oc=None, i_sc=None, v_mp_i_mp=None,
         1D array of `float` type containing current at each point on the IV
         curve, from ``i_sc`` to 0 inclusive. [A]
 
-    v_oc : float, optional
+    v_oc : float, default None
         Open circuit voltage. If not provided, ``v_oc`` is taken as the
         last point in the ``voltage`` array. [V]
 
-    i_sc : float, optional
+    i_sc : float, default None
         Short circuit current. If not provided, ``i_sc`` is taken as the
         first point in the ``current`` array. [A]
 
-    v_mp_i_mp : tuple of float, optional
+    v_mp_i_mp : tuple of float, default None
         Voltage, current at maximum power point. If not provided, the maximum
         power point is found at the maximum of ``voltage`` \times ``current``.
         [V], [A]
@@ -64,8 +64,7 @@ def fit_sandia_simple(voltage, current, v_oc=None, i_sc=None, v_mp_i_mp=None,
 
     Raises
     ------
-    RuntimeError
-        if parameter extraction is not successful.
+    RuntimeError if parameter extraction is not successful.
 
     Notes
     -----
@@ -107,7 +106,7 @@ def fit_sandia_simple(voltage, current, v_oc=None, i_sc=None, v_mp_i_mp=None,
     .. math::
 
         I &\approx \frac{I_{L}}{1 + G_{p} R_{s}}
-        - \frac{G_{p}}{1 + G_{p}R_{s}} V \\
+        - \frac{G_{p}}{1 + G_{p}R_{s}} V
         &= \beta_{0} + \beta_{1} V
 
     4. The exponential portion of the IV curve is defined by
@@ -125,8 +124,8 @@ def fit_sandia_simple(voltage, current, v_oc=None, i_sc=None, v_mp_i_mp=None,
     .. math::
 
         \log(\beta_{0} - \beta_{1} V - I)
-        &\approx \log(\frac{I_{0}}{1 + G_{p} R_{s}}) + \frac{V}{nN_sV_{th}}
-        + \frac{I R_{s}}{nN_sV_{th}} \\
+        &\approx \log(\frac{I_{0}}{1 + G_{p} R_{s}} + \frac{V}{nN_sV_{th}}
+        + \frac{I R_{s}}{nN_sV_{th}}) \\
         &= \beta_{2} + \beta_{3} V + \beta_{4} I
 
     6. Calculate values for ``IL, I0, Rs, Rsh,`` and ``nNsVth`` from the
@@ -140,8 +139,7 @@ def fit_sandia_simple(voltage, current, v_oc=None, i_sc=None, v_mp_i_mp=None,
        0 86758 909 4
     .. [2] C. B. Jones, C. W. Hansen, "Single Diode Parameter Extraction from
        In-Field Photovoltaic I-V Curves on a Single Board Computer", 46th IEEE
-       Photovoltaic Specialist Conference, Chicago, IL, 2019.
-       :doi:`10.1109/PVSC40753.2019.8981330`
+       Photovoltaic Specialist Conference, Chicago, IL, 2019
     """
 
     # If not provided, extract v_oc, i_sc, v_mp and i_mp from the IV curve data
@@ -291,10 +289,8 @@ def _fit_sandia_cocontent(voltage, current, nsvth):
 
     Raises
     ------
-    ValueError
-        if ``voltage`` and ``current`` are different lengths.
-    ValueError
-        if ``len(voltage)`` < 6
+    ValueError if ``voltage`` and ``current`` are different lengths.
+    ValueError if ``len(voltage)`` < 6
 
     Notes
     -----

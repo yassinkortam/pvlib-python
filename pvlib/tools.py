@@ -2,18 +2,16 @@
 Collection of functions used in pvlib_python
 """
 
-import contextlib
 import datetime as dt
-import warnings
-
 import numpy as np
 import pandas as pd
 import pytz
+import warnings
 
 
 def cosd(angle):
     """
-    Trigonometric cosine with angle input in degrees.
+    Cosine with angle input in degrees
 
     Parameters
     ----------
@@ -25,13 +23,14 @@ def cosd(angle):
     result : float or array-like
         Cosine of the angle
     """
+
     res = np.cos(np.radians(angle))
     return res
 
 
 def sind(angle):
     """
-    Trigonometric sine with angle input in degrees.
+    Sine with angle input in degrees
 
     Parameters
     ----------
@@ -43,13 +42,14 @@ def sind(angle):
     result : float
         Sin of the angle
     """
+
     res = np.sin(np.radians(angle))
     return res
 
 
 def tand(angle):
     """
-    Trigonometric tangent with angle input in degrees.
+    Tan with angle input in degrees
 
     Parameters
     ----------
@@ -61,13 +61,14 @@ def tand(angle):
     result : float
         Tan of the angle
     """
+
     res = np.tan(np.radians(angle))
     return res
 
 
 def asind(number):
     """
-    Trigonometric inverse sine returning an angle in degrees.
+    Inverse Sine returning an angle in degrees
 
     Parameters
     ----------
@@ -79,13 +80,14 @@ def asind(number):
     result : float
         arcsin result
     """
+
     res = np.degrees(np.arcsin(number))
     return res
 
 
 def acosd(number):
     """
-    Trigonometric inverse cosine returning an angle in degrees.
+    Inverse Cosine returning an angle in degrees
 
     Parameters
     ----------
@@ -97,45 +99,28 @@ def acosd(number):
     result : float
         arccos result
     """
+
     res = np.degrees(np.arccos(number))
-    return res
-
-
-def atand(number):
-    """
-    Trigonometric inverse tangent returning an angle in degrees.
-
-    Parameters
-    ----------
-    number : float
-        Input number
-
-    Returns
-    -------
-    result : float
-        arctan result
-    """
-    res = np.degrees(np.arctan(number))
     return res
 
 
 def localize_to_utc(time, location):
     """
-    Converts ``time`` to UTC, localizing if necessary using location.
+    Converts or localizes a time series to UTC.
 
     Parameters
     ----------
     time : datetime.datetime, pandas.DatetimeIndex,
            or pandas.Series/DataFrame with a DatetimeIndex.
-    location : pvlib.Location object (unused if ``time`` is localized)
+    location : pvlib.Location object
 
     Returns
     -------
-    datetime.datetime or pandas object localized to UTC.
+    pandas object localized to UTC.
     """
     if isinstance(time, dt.datetime):
         if time.tzinfo is None:
-            time = location.pytz.localize(time)
+            time = pytz.timezone(location.tz).localize(time)
         time_utc = time.astimezone(pytz.utc)
     else:
         try:
@@ -208,32 +193,8 @@ def _pandas_to_doy(pd_object):
     Returns
     -------
     dayofyear
-
-    Notes
-    -----
-    Day of year is determined using UTC, since pandas uses local hour
     """
-    return _pandas_to_utc(pd_object).dayofyear
-
-
-def _pandas_to_utc(pd_object):
-    """
-    Converts a pandas datetime-like object to UTC, if localized.
-    Otherwise, assume UTC.
-
-    Parameters
-    ----------
-    pd_object : DatetimeIndex or Timestamp
-
-    Returns
-    -------
-    pandas object localized to or assumed to be UTC.
-    """
-    try:
-        pd_object_utc = pd_object.tz_convert('UTC')
-    except TypeError:
-        pd_object_utc = pd_object
-    return pd_object_utc
+    return pd_object.dayofyear
 
 
 def _doy_to_datetimeindex(doy, epoch_year=2014):
@@ -256,7 +217,7 @@ def _doy_to_datetimeindex(doy, epoch_year=2014):
 
 
 def _datetimelike_scalar_to_doy(time):
-    return _pandas_to_doy(_datetimelike_scalar_to_datetimeindex(time))
+    return pd.DatetimeIndex([pd.Timestamp(time)]).dayofyear
 
 
 def _datetimelike_scalar_to_datetimeindex(time):
@@ -385,7 +346,7 @@ def _golden_sect_DataFrame(params, lower, upper, func, atol=1e-8):
 
     phim1 = (np.sqrt(5) - 1) / 2
 
-    df = params.copy()  # shallow copy to avoid modifying caller's dict
+    df = params
     df['VH'] = upper
     df['VL'] = lower
 
@@ -416,9 +377,6 @@ def _golden_sect_DataFrame(params, lower, upper, func, atol=1e-8):
     df['max'] = 0.5 * (df['V1'] + df['V2'])
     func_result = func(df, 'max')
     x = np.where(np.isnan(func_result), np.nan, df['max'])
-    if np.isscalar(df['max']):
-        # np.where always returns an ndarray, converting scalars to 0d-arrays
-        x = x.item()
 
     return func_result, x
 
@@ -500,89 +458,3 @@ def _degrees_to_index(degrees, coordinate):
         index = int(np.around(index))
 
     return index
-
-
-EPS = np.finfo('float64').eps  # machine precision NumPy-1.20
-DX = EPS**(1/3)  # optimal differential element
-
-
-def _first_order_centered_difference(f, x0, dx=DX, args=()):
-    # simple replacement for scipy.misc.derivative, which is scheduled for
-    # removal in scipy 1.12.0
-    df = f(x0+dx, *args) - f(x0-dx, *args)
-    return df / 2 / dx
-
-
-def get_pandas_index(*args):
-    """
-    Get the index of the first pandas DataFrame or Series in a list of
-    arguments.
-
-    Parameters
-    ----------
-    args: positional arguments
-        The numeric values to scan for a pandas index.
-
-    Returns
-    -------
-    A pandas index or None
-        None is returned if there are no pandas DataFrames or Series in the
-        args list.
-    """
-    return next(
-        (a.index for a in args if isinstance(a, (pd.DataFrame, pd.Series))),
-        None
-    )
-
-
-def normalize_max2one(a):
-    r"""
-    Normalize an array so that the largest absolute value is ±1.
-
-    Handles both numpy arrays and pandas objects.
-    On 2D arrays, normalization is row-wise.
-    On pandas DataFrame, normalization is column-wise.
-
-    If all values of row are 0, the array is set to NaNs.
-
-    Parameters
-    ----------
-    a : array-like
-        The array to normalize.
-
-    Returns
-    -------
-    array-like
-        The normalized array.
-    """
-    try:  # expect numpy array
-        res = a / np.max(np.absolute(a), axis=-1, keepdims=True)
-    except ValueError:  # fails for pandas objects
-        res = a.div(a.abs().max(axis=0, skipna=True))
-    return res
-
-
-def _file_context_manager(filename_or_object, mode='r'):
-    """
-    Open a filename/path for reading, or pass a file-like object
-    through unchanged.
-
-    Parameters
-    ----------
-    filename_or_object : str, path-like, or file-like object
-        The filename/path or object to convert to an object
-
-    Returns
-    -------
-    context : context manager
-        A file-like object to be used via python's "with [context] as buffer:"
-        syntax.
-    """
-
-    if hasattr(filename_or_object, "read"):
-        # already a file-like object
-        context = contextlib.nullcontext(filename_or_object)
-    else:
-        # otherwise, assume a filename or path
-        context = open(str(filename_or_object), mode=mode)
-    return context

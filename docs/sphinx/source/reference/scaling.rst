@@ -9,4 +9,3 @@ Methods for manipulating irradiance for temporal or spatial considerations
    :toctree: generated/
 
    scaling.wvm
-   scaling.latlon_to_xy

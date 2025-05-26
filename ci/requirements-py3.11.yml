@@ -7,9 +7,10 @@ dependencies:
     - cython
     - ephem
     - h5py
-    - numba
-    - numpy >= 1.17.3
-    - pandas >= 1.3.0
+    - netcdf4
+    # - numba  # https://github.com/numba/numba/issues/8304
+    - numpy >= 1.16.0
+    - pandas >= 0.25.0
     - pip
     - pytest
     - pytest-cov
@@ -17,12 +18,12 @@ dependencies:
     - requests-mock
     - pytest-timeout
     - pytest-rerunfailures
-    - conda-forge::pytest-remotedata  # version in default channel is old
+    - pytest-remotedata
     - python=3.11
     - pytz
     - requests
-    - scipy >= 1.6.0
+    - scipy >= 1.2.0
     - statsmodels
     - pip:
-        - nrel-pysam>=2.0
-        - solarfactors
+        # - nrel-pysam>=2.0
+        - pvfactors==1.5.2

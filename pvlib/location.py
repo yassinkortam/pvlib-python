@@ -4,9 +4,8 @@ This module contains the Location class.
 
 # Will Holmgren, University of Arizona, 2014-2016.
 
-import pathlib
+import os
 import datetime
-import zoneinfo
 
 import pandas as pd
 import pytz
@@ -15,20 +14,16 @@ import h5py
 from pvlib import solarposition, clearsky, atmosphere, irradiance
 from pvlib.tools import _degrees_to_index
 
-
 class Location:
     """
     Location objects are convenient containers for latitude, longitude,
-    time zone, and altitude data associated with a particular geographic
-    location. You can also assign a name to a location object.
+    timezone, and altitude data associated with a particular
+    geographic location. You can also assign a name to a location object.
 
-    Location objects have two time-zone attributes:
+    Location objects have two timezone attributes:
 
-        * ``tz`` is an IANA time-zone string.
-        * ``pytz`` is a pytz-based time-zone object (read only).
-
-    The read-only ``pytz`` attribute will stay in sync with any changes made
-    using ``tz``.
+        * ``tz`` is a IANA timezone string.
+        * ``pytz`` is a pytz timezone object.
 
     Location objects support the print method.
 
@@ -42,95 +37,52 @@ class Location:
         Positive is east of the prime meridian.
         Use decimal degrees notation.
 
-    tz : time zone as str, int, float, or datetime.tzinfo, default 'UTC'.
-        See http://en.wikipedia.org/wiki/List_of_tz_database_time_zones for a
-        list of valid name strings. An `int` or `float` must be a whole-number
-        hour offsets from UTC that can be converted to the IANA-supported
-        'Etc/GMT-N' format. (Note the limited range of the offset N and its
-        sign-change convention.) Time zones from the pytz and zoneinfo packages
-        may also be passed here, as they are subclasses of datetime.tzinfo.
+    tz : str, int, float, or pytz.timezone, default 'UTC'.
+        See
+        http://en.wikipedia.org/wiki/List_of_tz_database_time_zones
+        for a list of valid time zones.
+        pytz.timezone objects will be converted to strings.
+        ints and floats must be in hours from UTC.
 
-        The `tz` attribute is represented as a valid IANA time zone name
-        string.
-
-    altitude : float, optional
+    altitude : float, default 0.
         Altitude from sea level in meters.
-        If not specified, the altitude will be fetched from
-        :py:func:`pvlib.location.lookup_altitude`.
-        If no data is available for the location, the altitude is set to 0.
 
-    name : string, optional
+    name : None or string, default None.
         Sets the name attribute of the Location object.
-
-    Raises
-    ------
-    ValueError
-        when the time zone ``tz`` cannot be converted.
-
-    zoneinfo.ZoneInfoNotFoundError
-        when the time zone ``tz`` is not recognizable as an IANA time zone by
-        the ``zoneinfo.ZoneInfo`` initializer used for internal time-zone
-        representation.
 
     See also
     --------
     pvlib.pvsystem.PVSystem
     """
 
-    def __init__(
-        self, latitude, longitude, tz='UTC', altitude=None, name=None
-    ):
+    def __init__(self, latitude, longitude, tz='UTC', altitude=0, name=None):
+
         self.latitude = latitude
         self.longitude = longitude
-        self.tz = tz
 
-        if altitude is None:
-            altitude = lookup_altitude(latitude, longitude)
+        if isinstance(tz, str):
+            self.tz = tz
+            self.pytz = pytz.timezone(tz)
+        elif isinstance(tz, datetime.timezone):
+            self.tz = 'UTC'
+            self.pytz = pytz.UTC
+        elif isinstance(tz, datetime.tzinfo):
+            self.tz = tz.zone
+            self.pytz = tz
+        elif isinstance(tz, (int, float)):
+            self.tz = tz
+            self.pytz = pytz.FixedOffset(tz*60)
+        else:
+            raise TypeError('Invalid tz specification')
 
         self.altitude = altitude
+
         self.name = name
 
     def __repr__(self):
         attrs = ['name', 'latitude', 'longitude', 'altitude', 'tz']
-        # Use None as getattr default in case __repr__ is called during
-        # initialization before all attributes have been assigned.
         return ('Location: \n  ' + '\n  '.join(
-            f'{attr}: {getattr(self, attr, None)}' for attr in attrs))
-
-    @property
-    def tz(self):
-        """The location's IANA time-zone string."""
-        return str(self._zoneinfo)
-
-    @tz.setter
-    def tz(self, tz_):
-        # self._zoneinfo holds single source of time-zone truth as IANA name.
-        if isinstance(tz_, str):
-            self._zoneinfo = zoneinfo.ZoneInfo(tz_)
-        elif isinstance(tz_, int):
-            self._zoneinfo = zoneinfo.ZoneInfo(f"Etc/GMT{-tz_:+d}")
-        elif isinstance(tz_, float):
-            if tz_ % 1 != 0:
-                raise TypeError(
-                    "Floating-point tz has non-zero fractional part: "
-                    f"{tz_}. Only whole-number offsets are supported."
-                )
-
-            self._zoneinfo = zoneinfo.ZoneInfo(f"Etc/GMT{-int(tz_):+d}")
-        elif isinstance(tz_, datetime.tzinfo):
-            # Includes time zones generated by pytz and zoneinfo packages.
-            self._zoneinfo = zoneinfo.ZoneInfo(str(tz_))
-        else:
-            raise TypeError(
-                f"invalid tz specification: {tz_}, must be an IANA time zone "
-                "string, a whole-number int/float UTC offset, or a "
-                "datetime.tzinfo object (including subclasses)"
-            )
-
-    @property
-    def pytz(self):
-        """The location's pytz time zone (read only)."""
-        return pytz.timezone(str(self._zoneinfo))
+            f'{attr}: {getattr(self, attr)}' for attr in attrs))
 
     @classmethod
     def from_tmy(cls, tmy_metadata, tmy_data=None, **kwargs):
@@ -141,9 +93,8 @@ class Location:
         Parameters
         ----------
         tmy_metadata : dict
-            Returned from :py:func:`~pvlib.iotools.read_tmy2` or
-            :py:func:`~pvlib.iotools.read_tmy3`
-        tmy_data : DataFrame, optional
+            Returned from tmy.readtmy2 or tmy.readtmy3
+        tmy_data : None or DataFrame, default None
             Optionally attach the TMY data to this object.
 
         Returns
@@ -186,13 +137,14 @@ class Location:
         Parameters
         ----------
         metadata : dict
-            Returned from :py:func:`~pvlib.iotools.read_epw`
-        data : DataFrame, optional
+            Returned from epw.read_epw
+        data : None or DataFrame, default None
             Optionally attach the epw data to this object.
 
         Returns
         -------
-        Location
+        Location object (or the child class of Location that you
+        called this method from).
         """
 
         latitude = metadata['latitude']
@@ -221,10 +173,10 @@ class Location:
         ----------
         times : pandas.DatetimeIndex
             Must be localized or UTC will be assumed.
-        pressure : float, or array-like, optional
-            If not specified, ``pressure`` is calculated using
+        pressure : None, float, or array-like, default None
+            If None, pressure will be calculated using
             :py:func:`pvlib.atmosphere.alt2pres` and ``self.altitude``.
-        temperature : float or array-like, default 12
+        temperature : None, float, or array-like, default 12
 
         kwargs
             passed to :py:func:`pvlib.solarposition.get_solarposition`
@@ -257,11 +209,11 @@ class Location:
         model: str, default 'ineichen'
             The clear sky model to use. Must be one of
             'ineichen', 'haurwitz', 'simplified_solis'.
-        solar_position : DataFrame, optional
+        solar_position : None or DataFrame, default None
             DataFrame with columns 'apparent_zenith', 'zenith',
             'apparent_elevation'.
-        dni_extra : numeric, optional
-            If not specified, will be calculated from times.
+        dni_extra: None or numeric, default None
+            If None, will be calculated from times.
 
         kwargs
             Extra parameters passed to the relevant functions. Climatological
@@ -322,15 +274,15 @@ class Location:
         """
         Calculate the relative and absolute airmass.
 
-        Automatically chooses zenith or apparent zenith
+        Automatically chooses zenith or apparant zenith
         depending on the selected model.
 
         Parameters
         ----------
-        times : DatetimeIndex, optional
+        times : None or DatetimeIndex, default None
             Only used if solar_position is not provided.
-        solar_position : DataFrame, optional
-            DataFrame with columns 'apparent_zenith', 'zenith'.
+        solar_position : None or DataFrame, default None
+            DataFrame with with columns 'apparent_zenith', 'zenith'.
         model : str, default 'kastenyoung1989'
             Relative airmass model. See
             :py:func:`pvlib.atmosphere.get_relative_airmass`
@@ -368,7 +320,7 @@ class Location:
 
         return airmass
 
-    def get_sun_rise_set_transit(self, times, method='spa', **kwargs):
+    def get_sun_rise_set_transit(self, times, method='pyephem', **kwargs):
         """
         Calculate sunrise, sunset and transit times.
 
@@ -376,12 +328,11 @@ class Location:
         ----------
         times : DatetimeIndex
             Must be localized to the Location
-        method : str, default 'spa'
+        method : str, default 'pyephem'
             'pyephem', 'spa', or 'geometric'
 
-        kwargs :
-            Passed to the relevant functions. See
-            solarposition.sun_rise_set_transit_<method> for details.
+        kwargs are passed to the relevant functions. See
+        solarposition.sun_rise_set_transit_<method> for details.
 
         Returns
         -------
@@ -475,8 +426,8 @@ def lookup_altitude(latitude, longitude):
 
     """
 
-    pvlib_path = pathlib.Path(__file__).parent
-    filepath = pvlib_path / 'data' / 'Altitude.h5'
+    pvlib_path = os.path.dirname(os.path.abspath(__file__))
+    filepath = os.path.join(pvlib_path, 'data', 'Altitude.h5')
 
     latitude_index = _degrees_to_index(latitude, coordinate='latitude')
     longitude_index = _degrees_to_index(longitude, coordinate='longitude')
@@ -487,10 +438,8 @@ def lookup_altitude(latitude, longitude):
     # 255 is a special value that means nodata. Fallback to 0 if nodata.
     if alt == 255:
         return 0
-    # convert from np.uint8 to float so that the following operations succeed
-    alt = float(alt)
     # Altitude is encoded in 28 meter steps from -450 meters to 6561 meters
     # There are 0-254 possible altitudes, with 255 reserved for nodata.
     alt *= 28
     alt -= 450
-    return alt
+    return float(alt)

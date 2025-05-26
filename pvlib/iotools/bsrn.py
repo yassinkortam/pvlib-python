@@ -109,7 +109,7 @@ def get_bsrn(station, start, end, username, password,
     UserWarning
         If one or more requested files are missing a UserWarning is returned
         with a list of the filenames missing. If no files match the specified
-        station and timeframe a separate UserWarning is given.
+        station and timeframe a seperate UserWarning is given.
 
     Notes
     -----
@@ -153,10 +153,6 @@ def get_bsrn(station, start, end, username, password,
     """  # noqa: E501
     # The FTP server uses lowercase station abbreviations
     station = station.lower()
-
-    # Use pd.to_datetime so that strings (e.g. '2021-01-01') are accepted
-    start = pd.to_datetime(start)
-    end = pd.to_datetime(end)
 
     # Generate list files to download based on start/end (SSSMMYY.dat.gz)
     filenames = pd.date_range(
@@ -321,7 +317,7 @@ def parse_bsrn(fbuf, logical_records=('0100',)):
         LR_0100.columns = BSRN_LR0100_COLUMNS
         # Set datetime index
         LR_0100.index = (start_date+pd.to_timedelta(LR_0100['day']-1, unit='d')
-                         + pd.to_timedelta(LR_0100['minute'], unit='minutes'))
+                         + pd.to_timedelta(LR_0100['minute'], unit='T'))
         # Drop empty, minute, and day columns
         LR_0100 = LR_0100.drop(columns=['empty', 'day', 'minute'])
         dfs.append(LR_0100)
@@ -335,7 +331,7 @@ def parse_bsrn(fbuf, logical_records=('0100',)):
                               colspecs=BSRN_LR0300_COL_SPECS,
                               names=BSRN_LR0300_COLUMNS)
         LR_0300.index = (start_date+pd.to_timedelta(LR_0300['day']-1, unit='d')
-                         + pd.to_timedelta(LR_0300['minute'], unit='minutes'))
+                         + pd.to_timedelta(LR_0300['minute'], unit='T'))
         LR_0300 = LR_0300.drop(columns=['day', 'minute']).astype(float)
         dfs.append(LR_0300)
 
@@ -352,7 +348,7 @@ def parse_bsrn(fbuf, logical_records=('0100',)):
         LR_0500 = LR_0500.reindex(sorted(LR_0500.columns), axis='columns')
         LR_0500.columns = BSRN_LR0500_COLUMNS
         LR_0500.index = (start_date+pd.to_timedelta(LR_0500['day']-1, unit='d')
-                         + pd.to_timedelta(LR_0500['minute'], unit='minutes'))
+                         + pd.to_timedelta(LR_0500['minute'], unit='T'))
         LR_0500 = LR_0500.drop(columns=['empty', 'day', 'minute'])
         dfs.append(LR_0500)
 

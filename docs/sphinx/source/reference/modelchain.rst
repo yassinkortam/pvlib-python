@@ -112,6 +112,7 @@ on the information in the associated :py:class:`~pvsystem.PVSystem` object.
    modelchain.ModelChain.infer_dc_model
    modelchain.ModelChain.infer_ac_model
    modelchain.ModelChain.infer_aoi_model
+   modelchain.ModelChain.infer_spectral_model
    modelchain.ModelChain.infer_temperature_model
    modelchain.ModelChain.infer_losses_model
 
@@ -123,4 +124,5 @@ Functions for power modeling.
 .. autosummary::
    :toctree: generated/
 
+   modelchain.basic_chain
    modelchain.get_orientation

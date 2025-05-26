@@ -7,11 +7,7 @@ import pandas as pd
 import requests
 import io
 import warnings
-from pvlib import tools
 
-from pvlib._deprecation import deprecated
-
-URL = 'api.soda-solardata.com'
 
 CAMS_INTEGRATED_COLUMNS = [
     'TOA', 'Clear sky GHI', 'Clear sky BHI', 'Clear sky DHI', 'Clear sky BNI',
@@ -48,10 +44,9 @@ SUMMATION_PERIOD_TO_TIME_STEP = {'0 year 0 month 0 day 0 h 1 min 0 s': '1min',
 def get_cams(latitude, longitude, start, end, email, identifier='mcclear',
              altitude=None, time_step='1h', time_ref='UT', verbose=False,
              integrated=False, label=None, map_variables=True,
-             server=URL, timeout=30):
-    """Retrieve irradiance and clear-sky time series from CAMS.
-
-    Time-series of radiation and/or clear-sky global, beam, and
+             server='www.soda-is.com', timeout=30):
+    """
+    Retrieve time-series of radiation and/or clear-sky global, beam, and
     diffuse radiation from CAMS (see [1]_). Data is retrieved from SoDa [2]_.
 
     Time coverage: 2004-01-01 to two days ago
@@ -59,10 +54,8 @@ def get_cams(latitude, longitude, start, end, email, identifier='mcclear',
     Access: free, but requires registration, see [2]_
 
     Requests: max. 100 per day
-
     Geographical coverage: worldwide for CAMS McClear and approximately -66° to
-    66° in latitude and -66° to 180° in longitude for CAMS Radiation. See [3]_
-    for a map of the geographical coverage.
+    66° in both latitude and longitude for CAMS Radiation.
 
     Parameters
     ----------
@@ -70,17 +63,17 @@ def get_cams(latitude, longitude, start, end, email, identifier='mcclear',
         in decimal degrees, between -90 and 90, north is positive (ISO 19115)
     longitude : float
         in decimal degrees, between -180 and 180, east is positive (ISO 19115)
-    start: datetime-like
+    start: datetime like
         First day of the requested period
-    end: datetime-like
+    end: datetime like
         Last day of the requested period
     email: str
         Email address linked to a SoDa account
     identifier: {'mcclear', 'cams_radiation'}
         Specify whether to retrieve CAMS Radiation or McClear parameters
     altitude: float, optional
-        Altitude in meters. If not specified, then the altitude is determined
-        from the NASA SRTM database
+        Altitude in meters. If None, then the altitude is determined from the
+        NASA SRTM database
     time_step: str, {'1min', '15min', '1h', '1d', '1M'}, default: '1h'
         Time step of the time series, either 1 minute, 15 minute, hourly,
         daily, or monthly.
@@ -92,14 +85,14 @@ def get_cams(latitude, longitude, start, end, email, identifier='mcclear',
     integrated: boolean, default False
         Whether to return radiation parameters as integrated values (Wh/m^2)
         or as average irradiance values (W/m^2) (pvlib preferred units)
-    label : {'right', 'left'}, optional
+    label: {'right', 'left'}, default: None
         Which bin edge label to label time-step with. The default is 'left' for
         all time steps except for '1M' which has a default of 'right'.
     map_variables: bool, default: True
         When true, renames columns of the DataFrame to pvlib variable names
         where applicable. See variable :const:`VARIABLE_MAP`.
-    server: str, default: :const:`pvlib.iotools.sodapro.URL`
-        Base url of the SoDa Pro CAMS Radiation API.
+    server: str, default: 'www.soda-is.com'
+        Main server (www.soda-is.com) or backup mirror server (pro.soda-is.com)
     timeout : int, default: 30
         Time in seconds to wait for server response before timeout
 
@@ -145,15 +138,9 @@ def get_cams(latitude, longitude, start, end, email, identifier='mcclear',
     e.g. `sza` becomes `solar_zenith`. See variable :const:`VARIABLE_MAP` for
     the complete mapping.
 
-    For large geospatial areas, CAMS offers a pre-calculated
-    gridded dataset [4]_ over land and coastal areas. This dataset
-    may not include the most recent data coverage and may not be
-    based on the most recent CAMS version. This dataset is not available
-    through pvlib.
-
     See Also
     --------
-    pvlib.iotools.read_cams
+    pvlib.iotools.read_cams, pvlib.iotools.parse_cams
 
     Raises
     ------
@@ -163,15 +150,10 @@ def get_cams(latitude, longitude, start, end, email, identifier='mcclear',
 
     References
     ----------
-    .. [1] `CAMS solar radiation time-series documentation. Climate Data Store.
-       <https://ads.atmosphere.copernicus.eu/datasets/cams-solar-radiation-timeseries>`_
+    .. [1] `CAMS solar radiation documentation
+       <https://atmosphere.copernicus.eu/solar-radiation>`_
     .. [2] `CAMS Radiation Automatic Access (SoDa)
        <https://www.soda-pro.com/help/cams-services/cams-radiation-service/automatic-access>`_
-    .. [3] A. R. Jensen et al., pvlib iotools — Open-source Python functions
-       for seamless access to solar irradiance data. Solar Energy. 2023. Vol
-       266, pp. 112092. :doi:`10.1016/j.solener.2023.112092`
-    .. [4] `CAMS gridded solar radiation documentation.
-       <https://ads.atmosphere.copernicus.eu/datasets/cams-gridded-solar-radiation>`_
     """
     try:
         time_step_str = TIME_STEPS_MAP[time_step]
@@ -193,8 +175,8 @@ def get_cams(latitude, longitude, start, end, email, identifier='mcclear',
         altitude = -999
 
     # Start and end date should be in the format: yyyy-mm-dd
-    start = pd.to_datetime(start).strftime('%Y-%m-%d')
-    end = pd.to_datetime(end).strftime('%Y-%m-%d')
+    start = start.strftime('%Y-%m-%d')
+    end = end.strftime('%Y-%m-%d')
 
     email = email.replace('@', '%2540')  # Format email address
     identifier = 'get_{}'.format(identifier.lower())  # Format identifier str
@@ -212,7 +194,7 @@ def get_cams(latitude, longitude, start, end, email, identifier='mcclear',
         'username': email,
         'verbose': verbose}
 
-    # Manual formatting of the input parameters separating each by a semicolon
+    # Manual formatting of the input parameters seperating each by a semicolon
     data_inputs = ";".join([f"{key}={value}" for key, value in
                             data_inputs_dict.items()])
 
@@ -224,43 +206,39 @@ def get_cams(latitude, longitude, start, end, email, identifier='mcclear',
               }
 
     # The DataInputs parameter of the URL has to be manually formatted and
-    # added to the base URL as it contains sub-parameters separated by
+    # added to the base URL as it contains sub-parameters seperated by
     # semi-colons, which gets incorrectly formatted by the requests function
     # if passed using the params argument.
     res = requests.get(base_url + '?DataInputs=' + data_inputs, params=params,
                        timeout=timeout)
 
-    # Response from CAMS follows the status and reason format of PyWPS4
-    # If an error occurs on server side, it will return error 400 - bad request
-    # Additional information is available in the response text, so it is added
-    # to the error displayed to facilitate users effort to fix their request
-    if not res.ok:
+    # Invalid requests returns an XML error message and the HTTP staus code 200
+    # as if the request was successful. Therefore, errors cannot be handled
+    # automatic (e.g. res.raise_for_status()) and errors are handled manually
+    if res.headers['Content-Type'] == 'application/xml':
         errors = res.text.split('ows:ExceptionText')[1][1:-2]
-        res.reason = "%s: <%s>" % (res.reason, errors)
-        res.raise_for_status()
+        raise requests.HTTPError(errors, response=res)
     # Successful requests returns a csv data file
-    else:
+    elif res.headers['Content-Type'] == 'application/csv':
         fbuf = io.StringIO(res.content.decode('utf-8'))
-        data, metadata = read_cams(fbuf, integrated=integrated, label=label,
-                                   map_variables=map_variables)
+        data, metadata = parse_cams(fbuf, integrated=integrated, label=label,
+                                    map_variables=map_variables)
         return data, metadata
 
 
-def read_cams(filename, integrated=False, label=None, map_variables=True):
+def parse_cams(fbuf, integrated=False, label=None, map_variables=True):
     """
-    Read a file or file-like buffer with data in the format of a CAMS
-    Radiation or McClear file.
-
-    The CAMS solar radiation services are described in [1]_.
+    Parse a file-like buffer with data in the format of a CAMS Radiation or
+    McClear file. The CAMS solar radiation services are described in [1]_.
 
     Parameters
     ----------
-    filename: str, path-like, or buffer
-        Filename or in-memory buffer of a file containing data to read.
+    fbuf: file-like object
+        File-like object containing data to read.
     integrated: boolean, default False
         Whether to return radiation parameters as integrated values (Wh/m^2)
         or as average irradiance values (W/m^2) (pvlib preferred units)
-    label : {'right', 'left'}, optional
+    label: {'right', 'left'}, default: None
         Which bin edge label to label time-step with. The default is 'left' for
         all time steps except for '1M' which has a default of 'right'.
     map_variables: bool, default: True
@@ -276,31 +254,23 @@ def read_cams(filename, integrated=False, label=None, map_variables=True):
 
     See Also
     --------
-    pvlib.iotools.get_cams
+    pvlib.iotools.read_cams, pvlib.iotools.get_cams
 
     References
     ----------
-    .. [1] `CAMS solar radiation time-series documentation. Climate Data Store.
-       <https://ads.atmosphere.copernicus.eu/datasets/cams-solar-radiation-timeseries>`_
+    .. [1] `CAMS solar radiation documentation
+       <https://atmosphere.copernicus.eu/solar-radiation>`_
     """
     metadata = {}
-
-    with tools._file_context_manager(filename) as fbuf:
-
-        # Initial lines starting with # contain metadata
-        while True:
-            line = fbuf.readline().rstrip('\n')
-            if line.startswith('# Observation period'):
-                # The last line of the metadata section has the column names
-                names = line.lstrip('# ').split(';')
-                break  # End of metadata section has been reached
-            elif ': ' in line:
-                key = line.split(': ')[0].lstrip('# ')
-                value = line.split(': ')[1]
-                metadata[key] = value
-
-        data = pd.read_csv(fbuf, sep=';', comment='#', header=None,
-                           names=names)
+    # Initial lines starting with # contain metadata
+    while True:
+        line = fbuf.readline().rstrip('\n')
+        if line.startswith('# Observation period'):
+            # The last line of the metadata section contains the column names
+            names = line.lstrip('# ').split(';')
+            break  # End of metadata section has been reached
+        elif ': ' in line:
+            metadata[line.split(': ')[0].lstrip('# ')] = line.split(': ')[1]
 
     # Convert latitude, longitude, and altitude values from strings to floats
     for k_old in list(metadata.keys()):
@@ -315,6 +285,8 @@ def read_cams(filename, integrated=False, label=None, map_variables=True):
     time_step = SUMMATION_PERIOD_TO_TIME_STEP[
         metadata['Summarization (integration) period']]
     metadata['time_step'] = time_step
+
+    data = pd.read_csv(fbuf, sep=';', comment='#', header=None, names=names)
 
     obs_period = data['Observation period'].str.split('/')
 
@@ -354,5 +326,43 @@ def read_cams(filename, integrated=False, label=None, map_variables=True):
     return data, metadata
 
 
-parse_cams = deprecated(since="0.12.1", name="parse_cams",
-                        alternative="read_cams")(read_cams)
+def read_cams(filename, integrated=False, label=None, map_variables=True):
+    """
+    Read a CAMS Radiation or McClear file into a pandas DataFrame.
+
+    CAMS Radiation and McClear are described in [1]_.
+
+    Parameters
+    ----------
+    filename: str
+        Filename of a file containing data to read.
+    integrated: boolean, default False
+        Whether to return radiation parameters as integrated values (Wh/m^2)
+        or as average irradiance values (W/m^2) (pvlib preferred units)
+    label: {'right', 'left}, default: None
+        Which bin edge label to label time-step with. The default is 'left' for
+        all time steps except for '1M' which has a default of 'right'.
+    map_variables: bool, default: True
+        When true, renames columns of the Dataframe to pvlib variable names
+        where applicable. See variable VARIABLE_MAP.
+
+    Returns
+    -------
+    data: pandas.DataFrame
+        Timeseries data from CAMS Radiation or McClear
+        :func:`pvlib.iotools.get_cams` for fields
+    metadata: dict
+        Metadata available in the file.
+
+    See Also
+    --------
+    pvlib.iotools.parse_cams, pvlib.iotools.get_cams
+
+    References
+    ----------
+    .. [1] `CAMS solar radiation documentation
+       <https://atmosphere.copernicus.eu/solar-radiation>`_
+    """
+    with open(str(filename), 'r') as fbuf:
+        content = parse_cams(fbuf, integrated, label, map_variables)
+    return content

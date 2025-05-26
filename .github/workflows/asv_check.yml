@@ -16,17 +16,17 @@ jobs:
         shell: bash -el {0}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
       - name: Install Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v3
         with:
           python-version: '3.9'
 
       - name: Install asv
-        run: pip install asv==0.6.4
+        run: pip install asv==0.4.2
 
       - name: Run asv benchmarks
         run: |

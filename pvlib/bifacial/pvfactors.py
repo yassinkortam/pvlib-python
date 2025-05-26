@@ -1,7 +1,6 @@
 """
 The ``bifacial.pvfactors`` module contains functions for modeling back surface
-plane-of-array irradiance using an external implementaton of the pvfactors
-model (either ``solarfactors`` or the original ``pvfactors``).
+plane-of-array irradiance using the pvfactors package.
 """
 
 import pandas as pd
@@ -16,15 +15,11 @@ def pvfactors_timeseries(
         horizon_band_angle=15.):
     """
     Calculate front and back surface plane-of-array irradiance on
-    a fixed tilt or single-axis tracker PV array configuration using
-    the pvfactors model.
-
-    The pvfactors bifacial irradiance model is described in [1]_.
-
-    .. versionchanged:: 0.10.1
-       It is now recommended to install the ``solarfactors`` package
-       (``pip install solarfactors``) instead of ``pvfactors`` for this
-       function.  For more information, see :ref:`bifacial`.
+    a fixed tilt or single-axis tracker PV array configuration, and using
+    the open-source "pvfactors" package.  pvfactors implements the model
+    described in [1]_.
+    Please refer to pvfactors online documentation for more details:
+    https://sunpower.github.io/pvfactors/
 
     Parameters
     ----------

@@ -21,8 +21,7 @@ TEMPERATURE_MODEL_PARAMETERS = {
         'insulated_back_glass_polymer': {'a': -2.81, 'b': -.0455, 'deltaT': 0},
     },
     'pvsyst': {'freestanding': {'u_c': 29.0, 'u_v': 0},
-               'insulated': {'u_c': 15.0, 'u_v': 0},
-               'semi_integrated': {'u_c': 20.0, 'u_v': 0}}
+               'insulated': {'u_c': 15.0, 'u_v': 0}}
 }
 """Dictionary of temperature parameters organized by model.
 
@@ -119,24 +118,12 @@ def sapm_cell(poa_global, temp_air, wind_speed, a, b, deltaT,
     +===============+================+=======+=========+=====================+
     | glass/glass   | open rack      | -3.47 | -0.0594 | 3                   |
     +---------------+----------------+-------+---------+---------------------+
-    | glass/glass   | close mount    | -2.98 | -0.0471 | 1                   |
+    | glass/glass   | close roof     | -2.98 | -0.0471 | 1                   |
     +---------------+----------------+-------+---------+---------------------+
     | glass/polymer | open rack      | -3.56 | -0.075  | 3                   |
     +---------------+----------------+-------+---------+---------------------+
     | glass/polymer | insulated back | -2.81 | -0.0455 | 0                   |
     +---------------+----------------+-------+---------+---------------------+
-
-    Mounting cases can be described in terms of air flow across and around the
-    rear-facing surface of the module:
-
-    * "open rack" refers to mounting that allows relatively free air flow.
-      This case is typical of ground-mounted systems on fixed racking or
-      single axis trackers.
-    * "close mount" refers to limited or restricted air flow. This case is
-      typical of roof-mounted systems with some gap behind the module.
-    * "insulated back" refers to systems with no air flow contacting the rear
-      surface of the module. This case is typical of building-integrated PV
-      systems, or systems laid flat on a ground surface.
 
     References
     ----------
@@ -212,24 +199,12 @@ def sapm_module(poa_global, temp_air, wind_speed, a, b):
     +===============+================+=======+=========+=====================+
     | glass/glass   | open rack      | -3.47 | -0.0594 | 3                   |
     +---------------+----------------+-------+---------+---------------------+
-    | glass/glass   | close mount    | -2.98 | -0.0471 | 1                   |
+    | glass/glass   | close roof     | -2.98 | -0.0471 | 1                   |
     +---------------+----------------+-------+---------+---------------------+
     | glass/polymer | open rack      | -3.56 | -0.075  | 3                   |
     +---------------+----------------+-------+---------+---------------------+
     | glass/polymer | insulated back | -2.81 | -0.0455 | 0                   |
     +---------------+----------------+-------+---------+---------------------+
-
-    Mounting cases can be described in terms of air flow across and around the
-    rear-facing surface of the module:
-
-    * "open rack" refers to mounting that allows relatively free air flow.
-      This case is typical of ground-mounted systems on fixed racking or
-      single axis trackers.
-    * "close mount" refers to limited or restricted air flow. This case is
-      typical of roof-mounted systems with some gap behind the module.
-    * "insulated back" refers to systems with no air flow contacting the rear
-      surface of the module. This case is typical of building-integrated PV
-      systems, or systems laid flat on a ground surface.
 
     References
     ----------
@@ -294,24 +269,12 @@ def sapm_cell_from_module(module_temperature, poa_global, deltaT,
     +===============+================+=======+=========+=====================+
     | glass/glass   | open rack      | -3.47 | -0.0594 | 3                   |
     +---------------+----------------+-------+---------+---------------------+
-    | glass/glass   | close mount    | -2.98 | -0.0471 | 1                   |
+    | glass/glass   | close roof     | -2.98 | -0.0471 | 1                   |
     +---------------+----------------+-------+---------+---------------------+
     | glass/polymer | open rack      | -3.56 | -0.075  | 3                   |
     +---------------+----------------+-------+---------+---------------------+
     | glass/polymer | insulated back | -2.81 | -0.0455 | 0                   |
     +---------------+----------------+-------+---------+---------------------+
-
-    Mounting cases can be described in terms of air flow across and around the
-    rear-facing surface of the module:
-
-    * "open rack" refers to mounting that allows relatively free air flow.
-      This case is typical of ground-mounted systems on fixed racking or
-      single axis trackers.
-    * "close mount" refers to limited or restricted air flow. This case is
-      typical of roof-mounted systems with some gap behind the module.
-    * "insulated back" refers to systems with no air flow contacting the rear
-      surface of the module. This case is typical of building-integrated PV
-      systems, or systems laid flat on a ground surface.
 
     References
     ----------
@@ -328,7 +291,7 @@ def sapm_cell_from_module(module_temperature, poa_global, deltaT,
 
 
 def pvsyst_cell(poa_global, temp_air, wind_speed=1.0, u_c=29.0, u_v=0.0,
-                module_efficiency=0.1, alpha_absorption=0.9):
+                eta_m=None, module_efficiency=0.1, alpha_absorption=0.9):
     r"""
     Calculate cell temperature using an empirical heat loss factor model
     as implemented in PVsyst.
@@ -358,6 +321,8 @@ def pvsyst_cell(poa_global, temp_air, wind_speed=1.0, u_c=29.0, u_v=0.0,
         in :eq:`pvsyst`.
         :math:`\left[ \frac{\text{W}/\text{m}^2}{\text{C}\ \left( \text{m/s} \right)} \right]`
 
+    eta_m : numeric, default None (deprecated, use module_efficiency instead)
+
     module_efficiency : numeric, default 0.1
         Module external efficiency as a fraction. Parameter :math:`\eta_{m}`
         in :eq:`pvsyst`. Calculate as
@@ -383,37 +348,24 @@ def pvsyst_cell(poa_global, temp_air, wind_speed=1.0, u_c=29.0, u_v=0.0,
     air temperature :math:`T_{a}` (C) and wind speed :math:`WS` (m/s). Model
     output is cell temperature :math:`T_{C}`. Model parameters depend both on
     the module construction and its mounting. Parameters are provided in
-    [1]_ for open (freestanding), close (insulated), and intermediate
-    (semi_integrated) mounting configurations, and are coded for convenience in
+    [1]_ for open (freestanding) and close (insulated) mounting configurations,
+    , and are coded for convenience in
     :data:`~pvlib.temperature.TEMPERATURE_MODEL_PARAMETERS`. The heat loss
     factors provided represent the combined effect of convection, radiation and
     conduction, and their values are experimentally determined.
 
-    +-----------------+---------------+---------------+
-    | Mounting        | :math:`U_{c}` | :math:`U_{v}` |
-    +=================+===============+===============+
-    | freestanding    | 29.0          | 0.0           |
-    +-----------------+---------------+---------------+
-    | insulated       | 15.0          | 0.0           |
-    +-----------------+---------------+---------------+
-    | semi_integrated | 20.0          | 0.0           |
-    +-----------------+---------------+---------------+
-
-    Mounting cases can be described in terms of air flow across and around the
-    rear-facing surface of the module:
-
-    * "freestanding" refers to mounting that allows relatively free air
-      circulation around the modules. This case is typical of ground-mounted
-      systems on tilted, fixed racking or single axis trackers.
-    * "insulated" refers to mounting with air flow across only the front
-      surface. This case is typical of roof-mounted systems with no gap
-      behind the module.
+    +--------------+---------------+---------------+
+    | Mounting     | :math:`U_{c}` | :math:`U_{v}` |
+    +==============+===============+===============+
+    | freestanding | 29.0          | 0.0           |
+    +--------------+---------------+---------------+
+    | insulated    | 15.0          | 0.0           |
+    +--------------+---------------+---------------+
 
     References
     ----------
-    .. [1] "PVsyst 7 Help", [Online]. Available:
-       https://www.pvsyst.com/help/index.html?thermal_loss.htm.
-       [Accessed: 30-Jan-2024].
+    .. [1] "PVsyst 6 Help", Files.pvsyst.com, 2018. [Online]. Available:
+       http://files.pvsyst.com/help/index.html. [Accessed: 10- Dec- 2018].
 
     .. [2] Faiman, D. (2008). "Assessing the outdoor operating temperature of
        photovoltaic modules." Progress in Photovoltaics 16(4): 307-315.
@@ -426,6 +378,11 @@ def pvsyst_cell(poa_global, temp_air, wind_speed=1.0, u_c=29.0, u_v=0.0,
     37.93103448275862
     """  # noQA: E501
 
+    if eta_m:
+        warn_deprecated(
+            since='v0.9', message='eta_m overwriting module_efficiency',
+            name='eta_m', alternative='module_efficiency', removal='v0.10')
+        module_efficiency = eta_m
     total_loss_factor = u_c + u_v * wind_speed
     heat_input = poa_global * alpha_absorption * (1 - module_efficiency)
     temp_difference = heat_input / total_loss_factor
@@ -728,7 +685,7 @@ def fuentes(poa_global, temp_air, wind_speed, noct_installed, module_height=5,
 
     wind_height : float, default 9.144
         The height above ground at which ``wind_speed`` is measured. The
-        PVWatts default is 9.144 [m]
+        PVWatts defauls is 9.144 [m]
 
     emissivity : float, default 0.84
         The effectiveness of the module at radiating thermal energy. [unitless]
@@ -771,7 +728,7 @@ def fuentes(poa_global, temp_air, wind_speed, noct_installed, module_height=5,
            http://prod.sandia.gov/techlib/access-control.cgi/1985/850330.pdf
     .. [2] Dobos, A. P., 2014, "PVWatts Version 5 Manual", NREL/TP-6A20-62641,
            National Renewable Energy Laboratory, Golden CO.
-           :doi:`10.2172/1158421`.
+           doi:10.2172/1158421.
     """
     # ported from the FORTRAN77 code provided in Appendix A of Fuentes 1987;
     # nearly all variable names are kept the same for ease of comparison.
@@ -922,8 +879,8 @@ def noct_sam(poa_global, temp_air, wind_speed, noct, module_efficiency,
         :math:`\eta_{m} = \frac{V_{mp} I_{mp}}{A \times 1000 W/m^2}`
         where A is module area [m^2].
 
-    effective_irradiance : numeric, optional
-        The irradiance that is converted to photocurrent. If not specified,
+    effective_irradiance : numeric, default None.
+        The irradiance that is converted to photocurrent. If None,
         assumed equal to poa_global. [W/m^2]
 
     transmittance_absorptance : numeric, default 0.9
@@ -1012,7 +969,6 @@ def prilliman(temp_cell, wind_speed, unit_mass=11.1, coefficients=None):
 
     unit_mass : float, default 11.1
         Total mass of module divided by its one-sided surface area [kg/m^2]
-        One-sided surface area is equal to module height times width
 
     coefficients : 4-element list-like, optional
         Values for coefficients a_0 through a_3, see Eq. 9 of [1]_

@@ -32,16 +32,8 @@ solpos = solpos.loc[solpos['apparent_elevation'] > 0, :]
 ax = plt.subplot(1, 1, 1, projection='polar')
 # draw the analemma loops
 points = ax.scatter(np.radians(solpos.azimuth), solpos.apparent_zenith,
-                    s=2, label=None, c=solpos.index.dayofyear,
-                    cmap='twilight_shifted_r')
-# add and format colorbar
-cbar = ax.figure.colorbar(points)
-times_ticks = pd.date_range('2019-01-01', '2020-01-01', freq='MS', tz=tz)
-cbar.set_ticks(ticks=times_ticks.dayofyear, labels=[], minor=False)
-cbar.set_ticks(ticks=times_ticks.dayofyear+15,
-               labels=times_ticks.strftime('%b'),
-               minor=True)
-cbar.ax.tick_params(which='minor', width=0)
+                    s=2, label=None, c=solpos.index.dayofyear)
+ax.figure.colorbar(points)
 
 # draw hour labels
 for hour in np.unique(solpos.index.hour):
@@ -49,15 +41,14 @@ for hour in np.unique(solpos.index.hour):
     subset = solpos.loc[solpos.index.hour == hour, :]
     r = subset.apparent_zenith
     pos = solpos.loc[r.idxmin(), :]
-    ax.text(np.radians(pos['azimuth']), pos['apparent_zenith'],
-            str(hour).zfill(2), ha='center', va='bottom')
+    ax.text(np.radians(pos['azimuth']), pos['apparent_zenith'], str(hour))
 
 # draw individual days
 for date in pd.to_datetime(['2019-03-21', '2019-06-21', '2019-12-21']):
     times = pd.date_range(date, date+pd.Timedelta('24h'), freq='5min', tz=tz)
     solpos = solarposition.get_solarposition(times, lat, lon)
     solpos = solpos.loc[solpos['apparent_elevation'] > 0, :]
-    label = date.strftime('%b %d')
+    label = date.strftime('%Y-%m-%d')
     ax.plot(np.radians(solpos.azimuth), solpos.apparent_zenith, label=label)
 
 ax.figure.legend(loc='upper left')
@@ -73,7 +64,7 @@ plt.show()
 # This is a polar plot of hourly solar zenith and azimuth. The figure-8
 # patterns are called `analemmas <https://en.wikipedia.org/wiki/Analemma>`_ and
 # show how the sun's path slowly shifts over the course of the year .  The
-# solid colored lines show the single-day sun paths for the winter and summer
+# colored lines show the single-day sun paths for the winter and summer
 # solstices as well as the spring equinox.
 #
 # The soltice paths mark the boundary of the sky area that the sun traverses
@@ -112,7 +103,8 @@ import matplotlib.pyplot as plt
 
 tz = 'Asia/Calcutta'
 lat, lon = 28.6, 77.2
-times = pd.date_range('2019-01-01 00:00:00', '2020-01-01', freq='H', tz=tz)
+times = pd.date_range('2019-01-01 00:00:00', '2020-01-01', closed='left',
+                      freq='H', tz=tz)
 
 solpos = solarposition.get_solarposition(times, lat, lon)
 # remove nighttime
@@ -120,37 +112,25 @@ solpos = solpos.loc[solpos['apparent_elevation'] > 0, :]
 
 fig, ax = plt.subplots()
 points = ax.scatter(solpos.azimuth, solpos.apparent_elevation, s=2,
-                    c=solpos.index.dayofyear, label=None,
-                    cmap='twilight_shifted_r')
-# add and format colorbar
-cbar = fig.colorbar(points)
-times_ticks = pd.date_range('2019-01-01', '2020-01-01', freq='MS', tz=tz)
-cbar.set_ticks(ticks=times_ticks.dayofyear, labels=[], minor=False)
-cbar.set_ticks(ticks=times_ticks.dayofyear+15,
-               labels=times_ticks.strftime('%b'),
-               minor=True)
-cbar.ax.tick_params(which='minor', width=0)
+                    c=solpos.index.dayofyear, label=None)
+fig.colorbar(points)
 
 for hour in np.unique(solpos.index.hour):
     # choose label position by the largest elevation for each hour
     subset = solpos.loc[solpos.index.hour == hour, :]
     height = subset.apparent_elevation
     pos = solpos.loc[height.idxmax(), :]
-    azimuth_offset = -10 if pos['azimuth'] < 180 else 10
-    ax.text(pos['azimuth']+azimuth_offset, pos['apparent_elevation'],
-            str(hour).zfill(2), ha='center', va='bottom')
+    ax.text(pos['azimuth'], pos['apparent_elevation'], str(hour))
 
 for date in pd.to_datetime(['2019-03-21', '2019-06-21', '2019-12-21']):
     times = pd.date_range(date, date+pd.Timedelta('24h'), freq='5min', tz=tz)
     solpos = solarposition.get_solarposition(times, lat, lon)
     solpos = solpos.loc[solpos['apparent_elevation'] > 0, :]
-    label = date.strftime('%d %b')
+    label = date.strftime('%Y-%m-%d')
     ax.plot(solpos.azimuth, solpos.apparent_elevation, label=label)
 
-ax.figure.legend(loc='upper center', bbox_to_anchor=[0.45, 1], ncols=3)
+ax.figure.legend(loc='upper left')
 ax.set_xlabel('Solar Azimuth (degrees)')
 ax.set_ylabel('Solar Elevation (degrees)')
-ax.set_xticks([0, 90, 180, 270, 360])
-ax.set_ylim(0, None)
 
 plt.show()

@@ -12,11 +12,11 @@ Sandia array performance model (SAPM)
 
    pvsystem.sapm
    pvsystem.sapm_effective_irradiance
-   spectrum.spectral_factor_sapm
+   pvsystem.sapm_spectral_loss
    inverter.sandia
    temperature.sapm_cell
 
-PVsyst model
+Pvsyst model
 ^^^^^^^^^^^^
 
 .. autosummary::
@@ -47,11 +47,3 @@ ADR model
 
    pvarray.pvefficiency_adr
    pvarray.fit_pvefficiency_adr
-
-PVGIS model
-^^^^^^^^^^^
-
-.. autosummary::
-   :toctree: ../generated/
-
-    pvarray.huld

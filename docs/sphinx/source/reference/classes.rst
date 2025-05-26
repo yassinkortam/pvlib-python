@@ -19,5 +19,6 @@ the :ref:`pvsystemdoc` and :ref:`modelchaindoc` pages.
    pvsystem.Array
    pvsystem.FixedMount
    pvsystem.SingleAxisTrackerMount
+   tracking.SingleAxisTracker
    modelchain.ModelChain
    modelchain.ModelChainResult
