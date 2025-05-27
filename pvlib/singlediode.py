@@ -56,7 +56,7 @@ def estimate_voc(photocurrent, saturation_current, nNsVth):
 
 def bishop88(diode_voltage, photocurrent, saturation_current,
              resistance_series, resistance_shunt, nNsVth, d2mutau=0,
-             NsVbi=np.Inf, breakdown_factor=0., breakdown_voltage=-5.5,
+             NsVbi=np.inf, breakdown_factor=0., breakdown_voltage=-5.5,
              breakdown_exp=3.28, gradients=False):
     r"""
     Explicit calculation of points on the IV curve described by the single
@@ -204,7 +204,7 @@ def bishop88(diode_voltage, photocurrent, saturation_current,
 
 def bishop88_i_from_v(voltage, photocurrent, saturation_current,
                       resistance_series, resistance_shunt, nNsVth,
-                      d2mutau=0, NsVbi=np.Inf, breakdown_factor=0.,
+                      d2mutau=0, NsVbi=np.inf, breakdown_factor=0.,
                       breakdown_voltage=-5.5, breakdown_exp=3.28,
                       method='newton'):
     """
@@ -292,7 +292,7 @@ def bishop88_i_from_v(voltage, photocurrent, saturation_current,
 
 def bishop88_v_from_i(current, photocurrent, saturation_current,
                       resistance_series, resistance_shunt, nNsVth,
-                      d2mutau=0, NsVbi=np.Inf, breakdown_factor=0.,
+                      d2mutau=0, NsVbi=np.inf, breakdown_factor=0.,
                       breakdown_voltage=-5.5, breakdown_exp=3.28,
                       method='newton'):
     """
@@ -378,7 +378,7 @@ def bishop88_v_from_i(current, photocurrent, saturation_current,
 
 
 def bishop88_mpp(photocurrent, saturation_current, resistance_series,
-                 resistance_shunt, nNsVth, d2mutau=0, NsVbi=np.Inf,
+                 resistance_shunt, nNsVth, d2mutau=0, NsVbi=np.inf,
                  breakdown_factor=0., breakdown_voltage=-5.5,
                  breakdown_exp=3.28, method='newton'):
     """

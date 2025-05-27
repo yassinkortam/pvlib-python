@@ -23,6 +23,37 @@ from pvlib import (atmosphere, iam, inverter, irradiance,
 from pvlib.tools import _build_kwargs, _build_args
 
 
+def _pvsyst_Rsh(effective_irradiance, R_sh_ref, R_sh_0, R_sh_exp, e0=1000):
+    """Simplified PVsyst shunt resistance model."""
+    effective_irradiance = np.asarray(effective_irradiance)
+    return R_sh_ref / (1 + (R_sh_ref / R_sh_0) *
+                       (effective_irradiance / e0) ** R_sh_exp)
+
+
+def _pvsyst_IL(effective_irradiance, alpha_sc, temp_cell, e0=1000, t0=25):
+    """Simplified PVsyst photocurrent model."""
+    return effective_irradiance / e0 * (1 + alpha_sc * (temp_cell - t0))
+
+
+def _pvsyst_Io(effective_irradiance, beta_voc, temp_cell, cells_in_series,
+               e0=1000, t0=25):
+    """Simplified PVsyst saturation current model."""
+    del effective_irradiance  # not used in simplified expression
+    return np.exp(beta_voc / cells_in_series * (temp_cell - t0))
+
+
+def _pvsyst_nNsVth(temp_cell, cells_in_series):
+    """Simplified PVsyst thermal voltage model."""
+    return cells_in_series * constants.k * (temp_cell + 273.15) / constants.e
+
+
+def _pvsyst_gamma(effective_irradiance, gamma_ref, mu_gamma, temp_cell,
+                  e0=1000, t0=25):
+    """Simplified PVsyst gamma model."""
+    del effective_irradiance, e0  # not used
+    return gamma_ref + mu_gamma * (temp_cell - t0)
+
+
 # a dict of required parameter names for each DC power model
 _DC_MODEL_PARAMS = {
     'sapm': {
@@ -419,7 +450,7 @@ class PVSystem:
 
         aoi_model : string, default 'physical'
             The IAM model to be used. Valid strings are 'physical', 'ashrae',
-            'martin_ruiz' and 'sapm'.
+            'martin_ruiz', 'fresnel_ar' and 'sapm'.
         Returns
         -------
         iam : numeric or tuple of numeric
@@ -1531,7 +1562,7 @@ class Array:
             if `iam_model` is not a valid model name.
         """
         model = iam_model.lower()
-        if model in ['ashrae', 'physical', 'martin_ruiz']:
+        if model in ['ashrae', 'physical', 'martin_ruiz', 'fresnel_ar']:
             param_names = iam._IAM_MODEL_PARAMS[model]
             kwargs = _build_kwargs(param_names, self.module_parameters)
             func = getattr(iam, model)
@@ -2900,7 +2931,7 @@ def singlediode(photocurrent, saturation_current, resistance_series,
 
 
 def max_power_point(photocurrent, saturation_current, resistance_series,
-                    resistance_shunt, nNsVth, d2mutau=0, NsVbi=np.Inf,
+                    resistance_shunt, nNsVth, d2mutau=0, NsVbi=np.inf,
                     method='brentq'):
     """
     Given the single diode equation coefficients, calculates the maximum power
@@ -2947,7 +2978,7 @@ def max_power_point(photocurrent, saturation_current, resistance_series,
     """
     i_mp, v_mp, p_mp = _singlediode.bishop88_mpp(
         photocurrent, saturation_current, resistance_series,
-        resistance_shunt, nNsVth, d2mutau=0, NsVbi=np.Inf,
+        resistance_shunt, nNsVth, d2mutau=0, NsVbi=np.inf,
         method=method.lower()
     )
     if isinstance(photocurrent, pd.Series):
