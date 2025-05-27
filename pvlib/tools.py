@@ -458,3 +458,8 @@ def _degrees_to_index(degrees, coordinate):
         index = int(np.around(index))
 
     return index
+
+
+def _first_order_centered_difference(func, x0, args=(), dx=1e-6):
+    """Return the first order centered finite difference of ``func`` at ``x0``."""
+    return (func(x0 + dx, *args) - func(x0 - dx, *args)) / (2 * dx)

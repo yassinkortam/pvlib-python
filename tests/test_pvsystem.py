@@ -27,6 +27,7 @@ from tests.test_singlediode import get_pvsyst_fs_495
     ('ashrae', {'b': 0.05}),
     ('physical', {'K': 4, 'L': 0.002, 'n': 1.526}),
     ('martin_ruiz', {'a_r': 0.16}),
+    ('fresnel_ar', {'n_ar': 1.2, 'n_air': 1.0, 'n_glass': 1.56}),
 ])
 def test_PVSystem_get_iam(mocker, iam_model, model_params):
     m = mocker.spy(_iam, iam_model)

@@ -19,6 +19,7 @@ _IAM_MODEL_PARAMS = {
     'ashrae': {'b'},
     'physical': {'n', 'K', 'L'},
     'martin_ruiz': {'a_r'},
+    'fresnel_ar': {'n_ar', 'n_air', 'n_glass'},
     'sapm': {'B0', 'B1', 'B2', 'B3', 'B4', 'B5'},
     'interp': set()
 }
@@ -748,6 +749,61 @@ def marion_integrate(function, surface_tilt, region, num=None):
         Fd = pd.Series(Fd, surface_tilt.index)
 
     return Fd
+
+
+def fresnel_ar(aoi, n_ar=1.2, n_air=1.0, n_glass=1.56):
+    """Determine the incidence angle modifier using the Fresnel equations
+    for a surface with an anti-reflective coating.
+
+    Parameters
+    ----------
+    aoi : numeric
+        Angle of incidence between the module normal vector and the sun-beam
+        vector. [degrees]
+    n_ar : numeric, default 1.2
+        Index of refraction of the anti-reflective coating.
+    n_air : numeric, default 1.0
+        Index of refraction of the incident medium.
+    n_glass : numeric, default 1.56
+        Index of refraction of the glass cover.
+
+    Returns
+    -------
+    iam : numeric
+        The incident angle modifier.
+    """
+
+    aoi_input = aoi
+    aoi = np.asanyarray(aoi, dtype=float)
+
+    theta_ar = asind(n_air / n_ar * sind(aoi))
+    theta_glass = asind(n_ar / n_glass * sind(theta_ar))
+
+    rs1 = ((n_air * cosd(aoi) - n_ar * cosd(theta_ar)) /
+            (n_air * cosd(aoi) + n_ar * cosd(theta_ar))) ** 2
+    rp1 = ((n_air * cosd(theta_ar) - n_ar * cosd(aoi)) /
+            (n_air * cosd(theta_ar) + n_ar * cosd(aoi))) ** 2
+
+    rs2 = ((n_ar * cosd(theta_ar) - n_glass * cosd(theta_glass)) /
+            (n_ar * cosd(theta_ar) + n_glass * cosd(theta_glass))) ** 2
+    rp2 = ((n_ar * cosd(theta_glass) - n_glass * cosd(theta_ar)) /
+            (n_ar * cosd(theta_glass) + n_glass * cosd(theta_ar))) ** 2
+
+    rs = 1 - (1 - rs1) * (1 - rs2)
+    rp = 1 - (1 - rp1) * (1 - rp2)
+    refl = (rs + rp) / 2
+
+    r0_1 = ((n_air - n_ar) / (n_air + n_ar)) ** 2
+    r0_2 = ((n_ar - n_glass) / (n_ar + n_glass)) ** 2
+    r0 = 1 - (1 - r0_1) * (1 - r0_2)
+
+    iam = (1 - refl) / (1 - r0)
+    iam = np.where(np.abs(aoi) >= 90, 0.0, iam)
+
+    if isinstance(aoi_input, pd.Series):
+        iam = pd.Series(iam, index=aoi_input.index)
+
+    return iam
 
 
 def schlick(aoi):

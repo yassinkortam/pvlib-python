@@ -90,6 +90,18 @@ def test_physical_scalar():
     assert_allclose(iam, expected, equal_nan=True)
 
 
+def test_fresnel_ar():
+    aoi = np.array([0, 22.5, 45, 67.5, 90, 100, np.nan])
+    expected = np.array([1.0, 0.99972665, 0.99355573, 0.92808897, 0.0, 0.0,
+                         np.nan])
+    iam = _iam.fresnel_ar(aoi)
+    assert_allclose(iam, expected, atol=1e-7, equal_nan=True)
+
+    aoi = pd.Series(aoi)
+    iam_series = _iam.fresnel_ar(aoi)
+    assert_series_equal(iam_series, pd.Series(expected))
+
+
 def test_martin_ruiz():
 
     aoi = 45.
